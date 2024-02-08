@@ -1,46 +1,52 @@
 package com.andrusevich.restapp.controller;
 
 import com.andrusevich.restapp.entity.User;
+import com.andrusevich.restapp.repository.UserRepository;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import lombok.SneakyThrows;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+import java.util.Optional;
 
 @RestController
 @RequiredArgsConstructor
+@Slf4j
 public class MainController {
+
+    private final UserRepository userRepository;
 
     private final ObjectMapper objectMapper;
 
-    @GetMapping("/api/main")
-    public String mainListener() {
-        return "Rest App is running";
+    @PostMapping("/api/add")
+    public void addUser(@RequestBody User user) {
+        log.info("New database entry:" + userRepository.save(user));
     }
 
-    @GetMapping("/api/user")
-    public String getUser() {
-        User user = new User("Bob", 35, "UK");
-        String jsonData = null;
-        try {
-             jsonData = objectMapper.writeValueAsString(user);
-        } catch (JsonProcessingException e) {
-            throw new RuntimeException(e.getMessage());
-        }
-        return jsonData;
+    @SneakyThrows
+    @GetMapping("/api/all")
+    public String getAllUsers() {
+        List<User> users = userRepository.findAll();
+        return objectMapper.writeValueAsString(users);
     }
 
-    @PostMapping("/api/special")
-    public String setSpecialUser(@RequestParam String name) {
-        User user = new User(name, 35, "UK");
-        String jsonData = null;
-        try {
-            jsonData = objectMapper.writeValueAsString(user);
-        } catch (JsonProcessingException e) {
-            throw new RuntimeException(e.getMessage());
-        }
-        return jsonData;
+    @GetMapping("/api/{id}")
+    public User getUserById(@PathVariable String id) {
+        return userRepository.findById(Long.valueOf(id)).orElseThrow();
+    }
+
+    @DeleteMapping("/api")
+    public void deleteUserById(@RequestParam long id) {
+        userRepository.deleteById(id);
+    }
+
+    @PutMapping("/api/update")
+    public String updateUser(@RequestBody User user) {
+        if (!userRepository.existsById(user.getId())) {
+            return "No such user found in database";
+        } else return userRepository.save(user).toString();
     }
 }
